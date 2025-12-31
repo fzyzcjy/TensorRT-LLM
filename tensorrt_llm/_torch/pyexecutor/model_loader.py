@@ -28,9 +28,10 @@ from ..modules.fused_moe.moe_load_balancer import (
 _KV_CACHE_MAP = {
     "fp8": QuantAlgo.FP8.value,
     "nvfp4": QuantAlgo.NVFP4.value,
+    "force_bf16": None,
     "auto": "auto"
 }
-_VALID_KV_CACHE_DTYPES = ("fp8", "nvfp4", "auto")
+_VALID_KV_CACHE_DTYPES = ("fp8", "nvfp4", "force_bf16", "auto")
 
 
 def validate_and_set_mamba_ssm_cache_dtype(config: ModelConfig,
@@ -60,6 +61,14 @@ def validate_and_set_kv_cache_quant(model_config: ModelConfig,
         logger.info(
             f'KV cache quantization set to "{pyt_kv_cache_dtype}". Using '
             "checkpoint KV quantization.")
+        return
+
+    # If "force_bf16" is specified, force disable KV cache quantization
+    if pyt_kv_cache_dtype == "force_bf16":
+        logger.info(
+            f'KV cache dtype set to "{pyt_kv_cache_dtype}". '
+            "Forcing no KV cache quantization.")
+        model_config.quant_config.kv_cache_quant_algo = None
         return
 
     # If we have an invalid quantization, simply raise an exception.
